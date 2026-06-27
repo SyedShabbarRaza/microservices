@@ -4,8 +4,9 @@ import Task from "./models/taskModel.js";
 // import connectRabbitMQ from "./rabitMQ/services.js"
 import { connectRabbitMQ } from "./rabitMQ/connection.js";
 import { getChannel } from "./rabitMQ/connection.js";
-import { startConsumer } from "./rabitMQ/consumer.js";
-import userReferenceModel from "./models/userReferenceModel.js"
+// import { startConsumer } from "./rabitMQ/consumer.js";
+// import userReferenceModel from "./models/userReferenceModel.js"
+import client from "./grpc/userClient.js";
 const app = express();
 
 app.use(express.json());
@@ -25,25 +26,48 @@ app.get("/getTasks", async (req, res) => {
 app.post("/createTask", async (req, res) => {
     try {
         const { title, userId } = req.body;
-        const user = await userReferenceModel.findOne({ userId });
 
-        if (!user) {
-        return res.status(404).json({
-        error: "User not found"
+        // For confirmation through RabbitMQ    
+        
+        // const user = await userReferenceModel.findOne({ userId });
+        // if (!user) {
+        // return res.status(404).json({
+        // error: "User not found"
+        // });
+        // }
+        // console.log("User found in database")
+
+        //Through grpc
+
+    client.ValidateUser({ userId }, async (err, response) => {
+
+    if (err) {
+        return res.status(500).json({
+            error: err.message
         });
-        }
-        console.log("User found in database")
-        const task = new Task({ title , userId });
-        await task.save();
+    }
 
-        const message={taskId:task._id,title, userId};
-        let channel = getChannel();
-        if(!channel){
-            res.send(503).json({error:"RabbitMQ connection not established"})
-        }
-        channel.sendToQueue("task_created", Buffer.from(JSON.stringify(message)));
-        res.status(201).json(task);
-    } catch (error) {
+    if (!response.exists) {
+        return res.status(404).json({
+            error: "User not found"
+        });
+    }
+
+
+    
+    const task = new Task({ title , userId });
+    await task.save();
+    
+    const message={taskId:task._id,title, userId};
+    let channel = getChannel();
+    if(!channel){
+        res.send(503).json({error:"RabbitMQ connection not established"})
+    }
+    channel.sendToQueue("task_created", Buffer.from(JSON.stringify(message)));
+    res.status(201).json(task);
+
+});
+} catch (error) {
         console.log(error)
         res.status(400).json({ error: error.message });
     }
@@ -52,7 +76,7 @@ app.post("/createTask", async (req, res) => {
 app.listen(3002,async () => {
     console.log("Task Service is running on port 3002");
      await connectRabbitMQ();
-     startConsumer();
+    //  startConsumer();
 });
 
 export default app;

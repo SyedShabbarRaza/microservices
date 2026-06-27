@@ -8,7 +8,9 @@ services:
       - ./mongo-data:/data/db
   
   user-service:
-    build: ./user-service
+    build:
+      context: .
+      dockerfile: ./user-service/dockerfile
     container_name: user-service
     ports:
       - "3001:3001"
@@ -16,7 +18,9 @@ services:
       - mongo
 
   task-service:
-    build: ./task-service
+    build:
+      context: .
+      dockerfile: ./task-service/dockerfile
     container_name: task-service
     ports:
       - "3002:3002"

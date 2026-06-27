@@ -1,7 +1,15 @@
 FROM node:alpine
 WORKDIR /app
-COPY package.json .
+# due to grpc I have changes the context of dockercompose file therefore now changed the docker file to jsut copy user-service files not the project root files
+COPY user-service/package*.json ./
+
 RUN npm install
-COPY . .
+
+# Copy user-service source
+COPY user-service/ .
+
+# Copy shared proto files
+COPY shared ./shared
+
 EXPOSE 3001
 CMD ["npm", "run", "dev"]

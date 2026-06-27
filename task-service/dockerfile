@@ -1,7 +1,8 @@
 FROM node:alpine
 WORKDIR /app
-COPY package.json .
+COPY task-service/package*.json ./
 RUN npm install
-COPY . .
+COPY task-service/ .
+COPY shared ./shared
 EXPOSE 3002
 CMD ["npm", "run", "dev"]
